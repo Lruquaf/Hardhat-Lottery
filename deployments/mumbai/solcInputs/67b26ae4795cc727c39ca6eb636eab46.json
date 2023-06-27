@@ -1,0 +1,41 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ninterface AutomationCompatibleInterface {\n  /**\n   * @notice method that is simulated by the keepers to see if any work actually\n   * needs to be performed. This method does does not actually need to be\n   * executable, and since it is only ever simulated it can consume lots of gas.\n   * @dev To ensure that it is never called, you may want to add the\n   * cannotExecute modifier from KeeperBase to your implementation of this\n   * method.\n   * @param checkData specified in the upkeep registration so it is always the\n   * same for a registered upkeep. This can easily be broken down into specific\n   * arguments using `abi.decode`, so multiple upkeeps can be registered on the\n   * same contract and easily differentiated by the contract.\n   * @return upkeepNeeded boolean to indicate whether the keeper should call\n   * performUpkeep or not.\n   * @return performData bytes that the keeper should call performUpkeep with, if\n   * upkeep is needed. If you would like to encode data to decode later, try\n   * `abi.encode`.\n   */\n  function checkUpkeep(bytes calldata checkData) external returns (bool upkeepNeeded, bytes memory performData);\n\n  /**\n   * @notice method that is actually executed by the keepers, via the registry.\n   * The data returned by the checkUpkeep simulation will be passed into\n   * this method to actually be executed.\n   * @dev The input to this method should not be trusted, and the caller of the\n   * method should not even be restricted to any single registry. Anyone should\n   * be able call it, and the input should be validated, there is no guarantee\n   * that the data passed in is the performData returned from checkUpkeep. This\n   * could happen due to malicious keepers, racing keepers, or simply a state\n   * change while the performUpkeep transaction is waiting for confirmation.\n   * Always validate the data passed in.\n   * @param performData is the data which was passed back from the checkData\n   * simulation. If it is encoded, it can easily be decoded into other types by\n   * calling `abi.decode`. This data should not be trusted, and should be\n   * validated against the contract's current state.\n   */\n  function performUpkeep(bytes calldata performData) external;\n}\n"
+    },
+    "contracts/Automation.sol": {
+      "content": "// SPDX-License-Identifier: MIT\r\n\r\npragma solidity 0.8.7;\r\n\r\nimport \"@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol\";\r\nimport \"./LotteryInterface.sol\";\r\n\r\nerror Automation__PerformUpkeepFailed();\r\nerror Automation__InvalidData();\r\n\r\ncontract Automation is AutomationCompatibleInterface {\r\n    LotteryInterface public lottery;\r\n\r\n    event UpkeepPerformed(bytes performData);\r\n\r\n    constructor(address _lottery) {\r\n        lottery = LotteryInterface(_lottery);\r\n    }\r\n\r\n    function checkUpkeep(\r\n        bytes calldata checkData\r\n    ) external view override returns (bool upkeepNeeded, bytes memory performData) {\r\n        if (keccak256(checkData) == keccak256(bytes(abi.encode(\"request\")))) {\r\n            bool isInterval = (block.timestamp - lottery.getLatestCheckpoint() >=\r\n                lottery.getInterval() * 10);\r\n            bool isParticipated = (lottery.getPlayerCounter() > 1);\r\n            bool isOpen = lottery.getState();\r\n            upkeepNeeded = (isInterval && isParticipated && isOpen);\r\n            performData = checkData;\r\n        }\r\n        if (keccak256(checkData) == keccak256(bytes(abi.encode(\"pick\")))) {\r\n            bool isInterval = (block.timestamp - lottery.getLatestCheckpoint() >=\r\n                lottery.getInterval());\r\n            bool isRandom = (lottery.getRandomNumber() != 0);\r\n            bool isClosed = !lottery.getState();\r\n            upkeepNeeded = (isInterval && isRandom && isClosed);\r\n            performData = checkData;\r\n        }\r\n    }\r\n\r\n    function performUpkeep(bytes calldata performData) external override {\r\n        if (keccak256(performData) == keccak256(bytes(abi.encode(\"request\")))) {\r\n            if (\r\n                (block.timestamp - lottery.getLatestCheckpoint() >= lottery.getInterval() * 10) &&\r\n                (lottery.getPlayerCounter() > 1) &&\r\n                (lottery.getState())\r\n            ) {\r\n                lottery.requestRandomWinner();\r\n            } else {\r\n                revert Automation__PerformUpkeepFailed();\r\n            }\r\n        } else if (keccak256(performData) == keccak256(bytes(abi.encode(\"pick\")))) {\r\n            if (\r\n                (block.timestamp - lottery.getLatestCheckpoint() >= lottery.getInterval()) &&\r\n                (lottery.getRandomNumber() != 0) &&\r\n                (!lottery.getState())\r\n            ) {\r\n                lottery.pickRandomWinner();\r\n            } else {\r\n                revert Automation__PerformUpkeepFailed();\r\n            }\r\n        } else {\r\n            revert Automation__InvalidData();\r\n        }\r\n        emit UpkeepPerformed(performData);\r\n    }\r\n}\r\n"
+    },
+    "contracts/LotteryInterface.sol": {
+      "content": "// SPDX-License-Identifier: MIT\r\n\r\npragma solidity 0.8.7;\r\n\r\ninterface LotteryInterface {\r\n    function getState() external view returns (bool);\r\n\r\n    function getPlayerCounter() external view returns (uint256);\r\n\r\n    function getLatestCheckpoint() external view returns (uint256);\r\n\r\n    function getInterval() external view returns (uint256);\r\n\r\n    function getRandomNumber() external view returns (uint256);\r\n\r\n    function requestRandomWinner() external;\r\n\r\n    function pickRandomWinner() external;\r\n}\r\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
