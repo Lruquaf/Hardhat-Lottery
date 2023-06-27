@@ -11,9 +11,9 @@ There are a main lottery contract `Lottery.sol`, MATIC/USD price converter contr
 4. When enough time is passed all conditions are done, Automation requests a random winner for current lottery.
 5. Contract requests a random number from VRF.
 6. Automation checks fulfillment of randomness and other conditions regularly.
-7. VRF fulfills the request.
+7. VRF fulfills the request with random number.
 8. When randomness is fulfilled and other conditions are done, Automation picks the random winner for current lottery.
-9. Contract sends the its whole balance to the lucky winner.
+9. Contract sends its whole balance to the lucky winner.
 
 ## Links
 - Lottery: https://mumbai.polygonscan.com/address/0xd62d0CeD4e33Dc51a150461A38744D74203ad055
