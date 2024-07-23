@@ -23,4 +23,3 @@ There are a main lottery contract `Lottery.sol`, MATIC/USD price converter contr
 - VRF Subscription: https://vrf.chain.link/mumbai/5331
 - Automation for Requesting: https://automation.chain.link/mumbai/64369934782591002702989340216198759427603376413886677381742116440627746000768
 - Automation for Picking: https://automation.chain.link/mumbai/17124328698604732618102954101847535068371320749721210489066297977634516735918
-- **Donations (on EVM, preferably in Stablecoin):** 0x316ef5b0f40db115c4fb4e1e29a4c5fd8b36eec1
